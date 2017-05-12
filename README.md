@@ -63,6 +63,20 @@ sudo apt-get install sqlite3 libsqlite3-dev ruby ruby-dev
 sudo gem install sqlite3
 ```
 
+Either comment out this line in `weathersnarf.rb`, or change it to an http-keystore that is valid on your network:
+
+```
+$http_keystore_url = "http://10.0.1.125:11000"
+```
+
+http-keystore is a dead simple ruby script for storing key-value pairs. I'm using it here so I can make widgets that pull my latest weather data. If you do
+
+```
+GET http://10.0.1.125:11000/sensor-12345678
+```
+
+you'll get a JSON string with the latest weather data from the sensor whose ID is 12345678.
+
 I wanted pi/weathersnarf.rb to run on system start, so I wrote an init.d script for it (pi/weathersnarf). On Raspbian 7.8, I put pi/weathersnarf in /etc/init.d, and ran this as root:
 
 ```

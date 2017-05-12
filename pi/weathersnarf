@@ -23,7 +23,7 @@ start_daemon () {
 }
 
 kill_daemon () {
-    [ -e $PIDFILE ] && kill -9 `cat "$PIDFILE"`
+    [ -e $PIDFILE ] && kill -9 `cat "$PIDFILE"` && rm -f $PIDFILE
 }
 
 case "$1" in

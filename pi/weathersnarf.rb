@@ -11,6 +11,8 @@ require 'cgi'
 require 'sqlite3'
 require 'json'
 
+$http_keystore_url = "http://10.0.1.125:11000" # comment out to disable http-keystore use
+
 def parse_line(line)
   comps = line.strip.split(/\s+/)
 
@@ -131,14 +133,28 @@ def parse_query(query)
   args
 end
 
+def send_http_keystore(args)
+  return unless $http_keystore_url
+
+  Thread.new do
+    url = File.join($http_keystore_url, "sensor-#{args["sensor"]}")
+    IO.popen "curl -X POST -d @- #{url} 1>/dev/null 2>&1", 'r+' do |io|
+      io.puts args.to_json
+    end
+  end
+end
+
 def record_entry(query)
   args = parse_query(query)
   return unless args[:time_since] >= 60 || args[:different] # only log if it has been at least 60 seconds, or if the data has changed
 
+  args.merge!({ "query" => query, "time_inserted_epoch" => Time.now.to_i, "time_inserted_str" => Time.now.strftime("%Y-%m-%d %H:%M:%S %z") })
+  insert_keys = args.keys.select { |k| k.is_a?(String) }
+  send_http_keystore(args)
+
   db = open_db("weather.db")
 
-  db.execute "INSERT INTO weather (query, time_inserted_epoch, time_inserted_str, #{logged_keys.join(", ")}) values (?, ?, ?, #{logged_keys.map { "?" }.join(", ")})",
-    [ query, Time.now.to_i, Time.now.strftime("%Y-%m-%d %H:%M:%S %z") ] + logged_keys.map { |k| args[k.to_s] }
+  db.execute "INSERT INTO weather (#{insert_keys.join(", ")}) values (#{insert_keys.map { "?" }.join(", ")})", insert_keys.map { |k| args[k.to_s] }
 
   log "Sensor:#{args["sensor"]} Temp:#{args["tempf"]}F Rain:#{args["dailyrainin"]}\" Wind:#{args["windspeedmph"]}mph Dir:#{args["winddir"]}deg Baro:#{args["baromin"]} Humid:#{args["humidity"]}% Dew:#{args["dewptf"]}F"
 end
@@ -153,19 +169,24 @@ def run!(port)
     log "Accepted client: #{client.peeraddr[2]}"
 
     Thread.new do
-      connections = {}
-      monitor(client) do |packet|
-        h = conn_hash(packet[:src], packet[:dest])
-        connections[h] ||= { data:"" }
-        connections[h][:data] += packet[:data]
+      begin
+        connections = {}
+        monitor(client) do |packet|
+          h = conn_hash(packet[:src], packet[:dest])
+          connections[h] ||= { data:"" }
+          connections[h][:data] += packet[:data]
 
-        if packet[:flags].include?("F") then
-          process_msg(connections[h][:data]) { |q| record_entry(q) }
-          connections.delete(h)
+          if packet[:flags].include?("F") then
+            process_msg(connections[h][:data]) { |q| record_entry(q) }
+            connections.delete(h)
+          end
         end
-      end
 
-      log "Closed connection to client: #{client.peeraddr[2]}"
+        log "Closed connection to client: #{client.peeraddr[2]}"
+      rescue Exception => exc
+        log "Caught exception handling #{client.peeraddr[2]}: #{exc.class} #{exc.to_s}"
+        puts exc.backtrace.join("\n")
+      end
     end
   end
 end
