@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# invoke weathersnarf-router at startup
+# update the environment variables as needed (SMARTHUB_IP is IP of smartHUB unit, MONITOR_IP is system running weathersnarf.rb)
+# for dd-wrt, put me in /jffs/etc/config to run on startup
+
+WEATHERSNARF_SCRIPT=/jffs/jonas/weathersnarf-router.sh
+SMARTHUB_IP=10.0.1.115
+MONITOR_IP=10.0.1.116
+MONITOR_PORT=10100
+
+$WEATHERSNARF_SCRIPT $SMARTHUB_IP $MONITOR_IP $MONITOR_PORT 1>/dev/null 2>&1 &
