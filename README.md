@@ -2,7 +2,7 @@
 This is something I wrote to snarf data off of an AcuRite smartHUB. It's not the most elegant or portable solution, but it works. I'm throwing it up on Github, because this is just where I go to store code! I'm gonna write this README to be helpful to someone who is totally clueless about how to solve this problem -- which is probably going to be me, in 18 months, when I replace my router or my pi and need to fix my weather setup.
 
 # Motivation
-AcuRite puts out a 5-in-1 weather monitoring system (found here :https://www.acurite.com/weather-environment-system-900wes.html). Basically, you put one of these in your yard or on your roof or something, and it measures temperature, barometric pressure, humidity, rainfall and wind. The sensor continuously radios its readings down to monitors.
+AcuRite puts out a 5-in-1 weather monitoring system (found here: https://www.acurite.com/weather-environment-system-900wes.html). Basically, you put one of these in your yard or on your roof or something, and it measures temperature, barometric pressure, humidity, rainfall and wind. The sensor continuously radios its readings down to monitors.
 
 They have these cool little LCD screens that you can put in your house, but they also have this smartHUB system that is pretty much just a radio receiver with an ethernet jack on it. The smartHUB automatically picks up any AcuRite sensors in range, and when they report in, it uploads the data to AcuRite's servers. Unfortunately, while AcuRite does offer a way to upload sensor data to Weather Underground as of the time of this writing (May 2017), there doesn't seem to be a way to download the data for your own use. I really wanted to keep weather data in my own database so that I can use it for my own stuff, and have a historical record if AcuRite ever stops offering this service.
 
@@ -14,7 +14,7 @@ They have these cool little LCD screens that you can put in your house, but they
 * Router: Netgear R7000 running DD-WRT v24-sp2 K3 kongac, Build 25100M
 
 # How it works
-The smartHUB seems to just relay sensor data to AcuRite's servers every 15-30 seconds. This is done through an unencrypted HTTP request to http://hubapi.myacurite.com/weatherstation/updateweatherstation, with a query string that has all the sensor data. Not all sensor data is present in each update. Sometimes, certain data fields are omitted, for reasons that aren't immediately clear to me.
+The smartHUB seems to just relay sensor data to AcuRite's servers every 15-30 seconds. This is done through an unencrypted HTTP GET request to http://hubapi.myacurite.com/weatherstation/updateweatherstation, with a query string that has all the sensor data. Not all sensor data is present in each update. Sometimes, certain data fields are omitted, for reasons that aren't immediately clear to me.
 
 Key | Type | Value
 --- | ---- | -----
@@ -45,11 +45,11 @@ I use my router to get access to the smartHUB data. I've flashed it with DD-WRT 
 tcpdump -X host 10.0.1.115 and port 80 | nc 10.0.1.116 10100
 ```
 
-To make that run automatically when the router comes up, and retry if the Raspberry Pi stops listening for some reason, I made a script (weathersnarf-router.sh) which wraps that up nicely. I put that in /jffs/jonas/weathersnarf-router.sh. I had to turn on JFFS2 Support in the Administration section of the DD-WRT web config to get /jffs mounted. This lets us store the script in NVRAM so it doesn't get wiped out when the router loses power.
+To make that run automatically when the router comes up, and retry if the Raspberry Pi stops listening for some reason, use `weathersnarf-router.sh`. In my setup, I put it in `/jffs/jonas/weathersnarf-router.sh`. I had to turn on JFFS2 Support in the Administration section of the DD-WRT web config to get /jffs mounted. This lets us store the script in NVRAM so it doesn't get wiped out when the router loses power.
 
-Then, I put weathersnarf-router.startup in /jffs/etc/config. DD-WRT lets you put scripts here to automatically run on startup. I'm mildly concerned that there's nothing restarting the process if it dies, but weathersnarf-router.sh is a pretty simple shell script in an infinite loop, so I'm not that worried about it.
+Put `weathersnarf-router.startup` in `/jffs/etc/config`. You'll need to edit the script to change the environment variables at the top to reflect your exact setup. `/jffs/etc/config` contains scripts to be run automatically by DD-WRT on startup. I'm mildly concerned that there's nothing restarting the process if it dies, but weathersnarf-router.sh is a pretty simple shell script in an infinite loop, so I'm not that worried about it.
 
-Once you install it, you can either restart the router, or manually run `/jffs/jonas/weathersnarf-router.sh`.
+Once you install it, you can either restart the router, or manually run `/jffs/etc/config/weathersnarf-router.startup`.
 
 # Raspberry Pi portion
 
