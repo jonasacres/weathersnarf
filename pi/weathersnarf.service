@@ -1,0 +1,17 @@
+[Unit]
+Description=Weathersnarf Monitor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+PIDFile=/tmp/weathersnarf.pid
+ExecStart=/home/weather/weathersnarf/pi/weathersnarf.rb
+Restart=on-failure
+WorkingDirectory=/home/weather
+User=weather
+ProtectSystem=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+

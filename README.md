@@ -77,6 +77,7 @@ GET http://10.0.1.125:11000/sensor-12345678
 
 you'll get a JSON string with the latest weather data from the sensor whose ID is 12345678.
 
+## Autostart with sysvinit scripts
 I wanted pi/weathersnarf.rb to run on system start, so I wrote an init.d script for it (pi/weathersnarf). On Raspbian 7.8, I put pi/weathersnarf in /etc/init.d, and ran this as root:
 
 ```
@@ -86,6 +87,21 @@ service weathersnarf start
 ```
 
 then I put pi/weathersnarf.rb into ~weather.
+
+## Autostart with systemd
+And then the next day I decided to upgrade my pi to Jessie, which meant now I need to use a systemd script. I did this to get it going:
+
+```
+as root:
+adduser weather
+su - weather
+git clone https://github.com/jonasacres/weathersnarf
+logout
+
+cp ~weather/weathersnarf/pi/weathersnarf.service /etc/systemd/system
+systemctl start weathersnarf
+systemctl enable weathersnarf.service
+```
 
 And that's it. Now there should be a steadily-growing sqlite3 database in ~weather/weather.db.
 
