@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 # listens for tcpdump -X output capturing smartHUB data, fed over a TCP socket
 #
