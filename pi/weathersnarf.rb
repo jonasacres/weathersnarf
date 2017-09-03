@@ -143,4 +143,4 @@ def run!(port)
   end
 end
 
-run!(ARGV.first || 10100)
+run!(ARGV.first ? ARGV.first.to_i : 10100)
